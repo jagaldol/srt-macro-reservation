@@ -43,14 +43,14 @@ class SRTMacroAgent:
 
     def attempt_booking(self, seat_status, train_index):
         if "예약하기" in seat_status:
-            print("Attempting to book a seat...")
+            print("\nAttempting to book a seat...")
             try:
                 self.driver.find_element(
                     By.CSS_SELECTOR,
                     f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({train_index}) > td:nth-child(7) > a",
                 ).click()
             except ElementClickInterceptedException as e:
-                print(f"Error clicking the booking button: {e}")
+                print(f"\nError clicking the booking button: {e}")
                 self.driver.find_element(
                     By.CSS_SELECTOR,
                     f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({train_index}) > td:nth-child(7) > a",
@@ -60,15 +60,15 @@ class SRTMacroAgent:
 
             if self.driver.find_elements(By.ID, "isFalseGotoMain"):
                 self.is_booked = True
-                print("Booking successful!")
+                print("\nBooking successful!")
             else:
-                print("No available seats. Returning to results page.")
+                print("\nNo available seats. Returning to results page.")
                 self.driver.back()
                 self.driver.implicitly_wait(5)
 
     def attempt_reservation(self, reservation_status, train_index):
         if "신청하기" in reservation_status:
-            print("Attempting to place a reservation...")
+            print("\nAttempting to place a reservation...")
             self.driver.find_element(
                 By.CSS_SELECTOR,
                 f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({train_index}) > td:nth-child(8) > a",
@@ -79,6 +79,6 @@ class SRTMacroAgent:
         refresh_button = self.driver.find_element(By.XPATH, "//input[@value='조회하기']")
         self.driver.execute_script("arguments[0].click();", refresh_button)
         self.refresh_count += 1
-        print(f"Refreshed results {self.refresh_count} times.")
+        print(f"\rRefreshed results {self.refresh_count} times.", end="")
         self.driver.implicitly_wait(10)
         time.sleep(0.5)
