@@ -20,7 +20,7 @@ class SRTMacroAgent:
         self.refresh_count = 0
 
     def run(self):
-        while not self.is_booked:
+        while True:
             for train_index in range(1, self.config.num_to_check + 1):
                 try:
                     standard_seat_status = self.driver.find_element(
@@ -36,7 +36,11 @@ class SRTMacroAgent:
                     reservation_status = "매진"
 
                 self.attempt_booking(standard_seat_status, train_index)
+                if self.is_booked:
+                    break
                 self.attempt_reservation(reservation_status, train_index)
+                if self.is_booked:
+                    break
 
             time.sleep(randint(2, 4))
             self.refresh_results()
