@@ -1,3 +1,4 @@
 selenium==4.27.1
 pydantic==2.10.5
 python-dotenv==1.0.1
+python-telegram-bot==21.10
