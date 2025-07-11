@@ -1,3 +1,4 @@
+@chcp 65001 >nul
 @echo off
 REM 가상 환경 활성화
 call .venv\Scripts\activate

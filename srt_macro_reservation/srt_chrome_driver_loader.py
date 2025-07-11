@@ -24,11 +24,8 @@ class SRTChromeDriverLoader:
 
         self.driver.find_element(By.ID, "srchDvNm01").send_keys(self.config.user_id)
         self.driver.find_element(By.ID, "hmpgPwdCphd01").send_keys(self.config.password)
-        self.driver.find_element(
-            By.XPATH,
-            '//*[@id="login-form"]/fieldset/div[1]/div[1]/div[2]/div/div[2]/input',
-        ).click()
-
+        self.driver.find_element(By.CSS_SELECTOR, "input.loginSubmit").click()
+        time.sleep(2)
         self.driver.implicitly_wait(5)
 
     def _search_trains(self):

@@ -30,7 +30,7 @@ class SRTMacroAgent:
                         By.CSS_SELECTOR,
                         (
                             "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > "
-                            "tr:nth-child({train_index}) > td:nth-child(7)"
+                            f"tr:nth-child({train_index}) > td:nth-child(7)"
                         ),
                     ).text
                     reservation_status = self.driver.find_element(
