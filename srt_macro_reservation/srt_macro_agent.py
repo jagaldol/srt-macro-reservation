@@ -4,6 +4,7 @@ from random import randint
 
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
+    NoAlertPresentException,
     StaleElementReferenceException,
 )
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -27,11 +28,17 @@ class SRTMacroAgent:
                 try:
                     standard_seat_status = self.driver.find_element(
                         By.CSS_SELECTOR,
-                        f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({train_index}) > td:nth-child(7)",
+                        (
+                            "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > "
+                            "tr:nth-child({train_index}) > td:nth-child(7)"
+                        ),
                     ).text
                     reservation_status = self.driver.find_element(
                         By.CSS_SELECTOR,
-                        f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({train_index}) > td:nth-child(8)",
+                        (
+                            "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > "
+                            f"tr:nth-child({train_index}) > td:nth-child(8)"
+                        ),
                     ).text
                 except StaleElementReferenceException:
                     standard_seat_status = "매진"
@@ -57,14 +64,29 @@ class SRTMacroAgent:
             try:
                 self.driver.find_element(
                     By.CSS_SELECTOR,
-                    f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({train_index}) > td:nth-child(7) > a",
+                    (
+                        "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > "
+                        f"tr:nth-child({train_index}) > td:nth-child(7) > a"
+                    ),
                 ).click()
             except ElementClickInterceptedException as e:
                 print(f"\nError clicking the booking button: {e}")
                 self.driver.find_element(
                     By.CSS_SELECTOR,
-                    f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({train_index}) > td:nth-child(7) > a",
+                    (
+                        "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > "
+                        f"tr:nth-child({train_index}) > td:nth-child(7) > a"
+                    ),
                 ).send_keys(Keys.ENTER)
+
+            # alert 처리
+            try:
+                alert = self.driver.switch_to.alert
+                print(f"\nAlert appeared: {alert.text}")
+                alert.accept()
+                print("\nAlert accepted.")
+            except NoAlertPresentException:
+                pass
 
             self.driver.implicitly_wait(3)
 
@@ -82,7 +104,10 @@ class SRTMacroAgent:
             print("\nAttempting to place a reservation...")
             self.driver.find_element(
                 By.CSS_SELECTOR,
-                f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({train_index}) > td:nth-child(8) > a",
+                (
+                    "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > "
+                    f"tr:nth-child({train_index}) > td:nth-child(8) > a"
+                ),
             ).click()
             return True
         return False
