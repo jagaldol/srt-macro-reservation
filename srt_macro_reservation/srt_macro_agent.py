@@ -32,6 +32,9 @@ class SRTMacroAgent:
         self.bot = bot
         self.refresh_count = 0
         self.wait_timeout = wait_timeout
+        self.total_attempts = 0
+        self.booking_attempts = 0
+        self.waitlist_attempts = 0
 
     def run(self):
         self._wait_for_results_table()
@@ -45,10 +48,11 @@ class SRTMacroAgent:
                 reservation_status = self._get_cell_text(train_index, 8)
 
                 if self.attempt_booking(standard_seat_status, train_index):
-                    self._notify_success()
+                    self._notify_success("booking")
                     return
                 if self.attempt_reservation(reservation_status, train_index):
                     self._notify_success(
+                        "waitlist",
                         text="예약대기에 성공하였습니다",
                         duration=0,
                     )
@@ -61,7 +65,8 @@ class SRTMacroAgent:
         if "예약하기" not in seat_status:
             return False
 
-        print("\nAttempting to book a seat...")
+        attempt_number = self._register_attempt(is_waitlist=False)
+        print(f"\nAttempting to book a seat... (attempt #{attempt_number})")
         button_locator = (
             By.CSS_SELECTOR,
             (
@@ -89,7 +94,10 @@ class SRTMacroAgent:
         if "신청하기" not in reservation_status:
             return False
 
-        print("\nAttempting to place a reservation...")
+        attempt_number = self._register_attempt(is_waitlist=True)
+        print(
+            f"\nAttempting to place a reservation... (waitlist attempt #{attempt_number})"
+        )
         reservation_locator = (
             By.CSS_SELECTOR,
             (
@@ -120,11 +128,37 @@ class SRTMacroAgent:
                 time.sleep(0.1)
         return ""
 
-    def _notify_success(self, text: str | None = None, duration: int = 300):
-        print("\nReservation successful!")
+    def _notify_success(
+        self,
+        success_type: str,
+        text: str | None = None,
+        duration: int = 300,
+    ):
+        booking_attempts = self.booking_attempts
+        waitlist_attempts = self.waitlist_attempts
+        total_attempts = self.total_attempts
+
+        if success_type == "booking":
+            base_message = "Booking successful!"
+            default_text = "예약에 성공하였습니다."
+            detail_message = (
+                f"총 {total_attempts}번 시도 중 좌석 예약 {booking_attempts}번째 시도에서 성공했습니다."
+            )
+        else:
+            base_message = "Reservation successful!"
+            default_text = "예약대기에 성공하였습니다."
+            detail_message = (
+                f"총 {total_attempts}번 시도 중 예약대기 {waitlist_attempts}번째 시도에서 성공했습니다."
+            )
+
+        print(f"\n{base_message}")
+        print(detail_message)
+
         if not self.bot:
             return
-        asyncio.run(self.bot.alert(text=text, duration=duration))
+        message_text = text or default_text
+        message_text = f"{message_text}\n{detail_message}"
+        asyncio.run(self.bot.alert(text=message_text, duration=duration))
 
     def _handle_alert(self):
         try:
@@ -176,3 +210,11 @@ class SRTMacroAgent:
         if last_error:
             print(f"\nFailed to click {description}: {last_error}")
         return False
+
+    def _register_attempt(self, *, is_waitlist: bool) -> int:
+        self.total_attempts += 1
+        if is_waitlist:
+            self.waitlist_attempts += 1
+            return self.waitlist_attempts
+        self.booking_attempts += 1
+        return self.booking_attempts

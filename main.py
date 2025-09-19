@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 import dotenv
@@ -19,6 +20,16 @@ if __name__ == "__main__":
     srt_macro_bot = None
     if bot_token and chat_id:
         srt_macro_bot = SRTMacroBot(bot_token, chat_id)
+        config_summary = (
+            "SRT 매크로를 다음 설정으로 시작합니다:\n"
+            f"- 출발역: {srt_config.departure_station}\n"
+            f"- 도착역: {srt_config.arrival_station}\n"
+            f"- 출발일시: {srt_config.departure_date} {srt_config.departure_time}시\n"
+            f"- 조회 건너뛰기: {srt_config.num_to_skip}건\n"
+            f"- 확인 대상: {srt_config.num_to_check}건\n"
+            f"- 예약대기 시도: {'예' if srt_config.enable_waiting_list else '아니요'}"
+        )
+        asyncio.run(srt_macro_bot.alert(text=config_summary, duration=0))
     else:
         print("Telegram 알림을 비활성화했습니다. 토큰과 채팅 ID를 확인하세요.")
 

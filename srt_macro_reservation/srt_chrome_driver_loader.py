@@ -85,7 +85,7 @@ class SRTChromeDriverLoader:
             f"Arrival: {self.config.arrival_station}\n"
             f"Date: {self.config.departure_date}\n"
             f"Time: {self.config.departure_time} onwards\n"
-            f"Checking top {self.config.num_to_check} trains for reservations."
+            f"Inspecting {self.config.num_to_check} trains for availability."
         )
         if self.config.num_to_skip:
             message += f"\nSkipping first {self.config.num_to_skip} trains."
