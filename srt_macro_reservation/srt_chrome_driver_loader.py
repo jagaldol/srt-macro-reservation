@@ -79,7 +79,7 @@ class SRTChromeDriverLoader:
         self._select_option("dptDt", value=self.config.departure_date)
         self._select_option("dptTm", text=self.config.departure_time)
 
-        print(
+        message = (
             "Searching for trains:\n"
             f"Departure: {self.config.departure_station}\n"
             f"Arrival: {self.config.arrival_station}\n"
@@ -87,6 +87,9 @@ class SRTChromeDriverLoader:
             f"Time: {self.config.departure_time} onwards\n"
             f"Checking top {self.config.num_to_check} trains for reservations."
         )
+        if self.config.num_to_skip:
+            message += f"\nSkipping first {self.config.num_to_skip} trains."
+        print(message)
 
         search_button = self.wait.until(
             EC.element_to_be_clickable((By.XPATH, "//input[@value='조회하기']"))

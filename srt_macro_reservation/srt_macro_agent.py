@@ -37,8 +37,10 @@ class SRTMacroAgent:
         self._wait_for_results_table()
         if not self.config.enable_waiting_list:
             print("\n예약대기 자동 신청을 비활성화했습니다.")
+        start_index = 1 + self.config.num_to_skip
+        end_index = start_index + self.config.num_to_check
         while True:
-            for train_index in range(1, self.config.num_to_check + 1):
+            for train_index in range(start_index, end_index):
                 standard_seat_status = self._get_cell_text(train_index, 7)
                 reservation_status = self._get_cell_text(train_index, 8)
 

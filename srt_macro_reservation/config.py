@@ -10,6 +10,7 @@ class SRTConfig(BaseModel):
     departure_date: str = Field(..., description="출발 날짜 YYYYMMDD", example="20250101")
     departure_time: str = Field(..., description="출발 시간(짝수, hh 형식)", example="06")
     num_to_check: int = Field(3, ge=1, description="검색 결과 중 시도할 시간표 수")
+    num_to_skip: int = Field(0, ge=0, description="검색 결과에서 건너뛸 시간표 수")
     user_id: str = Field(..., description="사용자 ID", example="1234567890")
     password: str = Field(..., description="비밀번호", example="0000")
     enable_waiting_list: bool = Field(
@@ -51,6 +52,7 @@ def load_config_from_env() -> SRTConfig:
             raise ValueError(f"{key} 환경변수는 정수여야 합니다.") from exc
 
     default_num = SRTConfig.model_fields["num_to_check"].default
+    default_skip = SRTConfig.model_fields["num_to_skip"].default
 
     def _parse_bool_env(key: str, default: bool) -> bool:
         raw_value = os.getenv(key)
@@ -70,6 +72,7 @@ def load_config_from_env() -> SRTConfig:
         departure_date=_get_env("DEPARTURE_DATE"),
         departure_time=_get_env("DEPARTURE_TIME"),
         num_to_check=_parse_int_env("NUM_TO_CHECK", default_num),
+        num_to_skip=_parse_int_env("NUM_TO_SKIP", default_skip),
         user_id=_get_env("USER_ID"),
         password=_get_env("PASSWORD"),
         enable_waiting_list=_parse_bool_env("ENABLE_WAITING_LIST", True),
