@@ -30,12 +30,29 @@ class SRTConfig(BaseModel):
 
 def load_config_from_env() -> SRTConfig:
     """환경변수에서 설정 값을 읽어와 SRTConfig 생성."""
+    def _get_env(key: str) -> str | None:
+        value = os.getenv(key)
+        if value is None:
+            return None
+        return value.strip()
+
+    def _parse_int_env(key: str, default: int) -> int:
+        raw_value = os.getenv(key)
+        if raw_value is None or not raw_value.strip():
+            return default
+        try:
+            return int(raw_value)
+        except ValueError as exc:
+            raise ValueError(f"{key} 환경변수는 정수여야 합니다.") from exc
+
+    default_num = SRTConfig.model_fields["num_to_check"].default
+
     return SRTConfig(
-        departure_station=os.getenv("DEPARTURE_STATION"),
-        arrival_station=os.getenv("ARRIVAL_STATION"),
-        departure_date=os.getenv("DEPARTURE_DATE"),
-        departure_time=os.getenv("DEPARTURE_TIME"),
-        num_to_check=int(os.getenv("NUM_TO_CHECK")),
-        user_id=os.getenv("USER_ID"),
-        password=os.getenv("PASSWORD"),
+        departure_station=_get_env("DEPARTURE_STATION"),
+        arrival_station=_get_env("ARRIVAL_STATION"),
+        departure_date=_get_env("DEPARTURE_DATE"),
+        departure_time=_get_env("DEPARTURE_TIME"),
+        num_to_check=_parse_int_env("NUM_TO_CHECK", default_num),
+        user_id=_get_env("USER_ID"),
+        password=_get_env("PASSWORD"),
     )
