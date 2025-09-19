@@ -12,6 +12,11 @@ class SRTConfig(BaseModel):
     num_to_check: int = Field(3, ge=1, description="검색 결과 중 시도할 시간표 수")
     user_id: str = Field(..., description="사용자 ID", example="1234567890")
     password: str = Field(..., description="비밀번호", example="0000")
+    enable_waiting_list: bool = Field(
+        True,
+        description="예약대기(신청하기) 자동 시도 여부",
+        example=True,
+    )
 
     @field_validator("departure_date")
     def validate_date(cls, value):
@@ -47,6 +52,18 @@ def load_config_from_env() -> SRTConfig:
 
     default_num = SRTConfig.model_fields["num_to_check"].default
 
+    def _parse_bool_env(key: str, default: bool) -> bool:
+        raw_value = os.getenv(key)
+        if raw_value is None or not raw_value.strip():
+            return default
+
+        lowered = raw_value.strip().lower()
+        if lowered in {"1", "true", "t", "y", "yes"}:
+            return True
+        if lowered in {"0", "false", "f", "n", "no"}:
+            return False
+        raise ValueError(f"{key} 환경변수는 true/false 중 하나여야 합니다.")
+
     return SRTConfig(
         departure_station=_get_env("DEPARTURE_STATION"),
         arrival_station=_get_env("ARRIVAL_STATION"),
@@ -55,4 +72,5 @@ def load_config_from_env() -> SRTConfig:
         num_to_check=_parse_int_env("NUM_TO_CHECK", default_num),
         user_id=_get_env("USER_ID"),
         password=_get_env("PASSWORD"),
+        enable_waiting_list=_parse_bool_env("ENABLE_WAITING_LIST", True),
     )
