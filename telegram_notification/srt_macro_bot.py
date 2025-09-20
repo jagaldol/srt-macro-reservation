@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import time
 from typing import Optional
 
@@ -11,7 +12,11 @@ class SRTMacroBot:
         self.chat_id = chat_id
         self._last_update_id: Optional[int] = None
         self._stop_requested = False
-        self._loop: asyncio.AbstractEventLoop | None = asyncio.new_event_loop()
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._loop_thread: threading.Thread | None = None
+        self._loop_ready = threading.Event()
+        self._loop_lock = threading.Lock()
+        self._ensure_loop()
 
     async def alert(self, text=None, duration=300):
         self._stop_requested = False
@@ -53,8 +58,34 @@ class SRTMacroBot:
 
     def alert_sync(self, text=None, duration=300):
         loop = self._ensure_loop()
+
+        future = asyncio.run_coroutine_threadsafe(
+            self.alert(text=text, duration=duration), loop
+        )
+        try:
+            return future.result()
+        except RuntimeError as error:
+            if "Event loop is closed" in str(error):
+                self._restart_loop()
+                return self.alert_sync(text=text, duration=duration)
+            print(f"Telegram 알림 전송 중 런타임 오류가 발생했습니다: {error}")
+        except Exception as error:
+            print(f"Telegram 알림 전송 중 오류가 발생했습니다: {error}")
+
+    def _start_loop(self, loop: asyncio.AbstractEventLoop):
         asyncio.set_event_loop(loop)
-        return loop.run_until_complete(self.alert(text=text, duration=duration))
+        self._loop_ready.set()
+        loop.run_forever()
+
+    def _restart_loop(self):
+        with self._loop_lock:
+            if self._loop and not self._loop.is_closed():
+                self._loop.call_soon_threadsafe(self._loop.stop)
+            if self._loop_thread and self._loop_thread.is_alive():
+                self._loop_thread.join(timeout=1)
+            self._loop = None
+            self._loop_thread = None
+            self._loop_ready.clear()
 
     async def _check_stop_command(self):
         offset = (self._last_update_id + 1) if self._last_update_id is not None else None
@@ -85,6 +116,17 @@ class SRTMacroBot:
         return message.text.strip().lower() == "/stop"
 
     def _ensure_loop(self) -> asyncio.AbstractEventLoop:
-        if self._loop is None or self._loop.is_closed():
-            self._loop = asyncio.new_event_loop()
+        with self._loop_lock:
+            if self._loop is None or self._loop.is_closed():
+                self._loop_ready.clear()
+                self._loop = asyncio.new_event_loop()
+                self._loop_thread = threading.Thread(
+                    target=self._start_loop,
+                    name="SRTMacroBotLoop",
+                    args=(self._loop,),
+                    daemon=True,
+                )
+                self._loop_thread.start()
+
+        self._loop_ready.wait()
         return self._loop
