@@ -32,9 +32,6 @@ class SRTMacroAgent:
         self.bot = bot
         self.refresh_count = 0
         self.wait_timeout = wait_timeout
-        self.total_attempts = 0
-        self.booking_attempts = 0
-        self.waitlist_attempts = 0
 
     def run(self):
         self._wait_for_results_table()
@@ -65,8 +62,10 @@ class SRTMacroAgent:
         if "예약하기" not in seat_status:
             return False
 
-        attempt_number = self._register_attempt(is_waitlist=False)
-        print(f"\nAttempting to book a seat... (attempt #{attempt_number})")
+        print(
+            "\nAttempting to book a seat... "
+            f"(after {self.refresh_count} refreshes)"
+        )
         button_locator = (
             By.CSS_SELECTOR,
             (
@@ -74,13 +73,24 @@ class SRTMacroAgent:
                 f"tr:nth-child({train_index}) > td:nth-child(7) > a"
             ),
         )
+        current_handles = set(self.driver.window_handles)
+
         if not self._click_element(button_locator, "booking button"):
             return False
 
-        self._handle_alert()
+        alert_text = self._handle_alert()
 
-        if self.driver.find_elements(By.ID, "isFalseGotoMain"):
-            print("\nBooking successful!")
+        if alert_text:
+            print(f"\n예약 진행 중 경고창이 표시되었습니다: {alert_text}")
+            self._wait_for_results_table()
+            return False
+
+        if self._switch_to_booking_window(current_handles):
+            print("\nBooking page detected. Awaiting user action.")
+            return True
+
+        if self._is_on_booking_page():
+            print("\nBooking page detected. Awaiting user action.")
             return True
 
         print("\nNo available seats. Returning to results page.")
@@ -94,9 +104,9 @@ class SRTMacroAgent:
         if "신청하기" not in reservation_status:
             return False
 
-        attempt_number = self._register_attempt(is_waitlist=True)
         print(
-            f"\nAttempting to place a reservation... (waitlist attempt #{attempt_number})"
+            "\nAttempting to place a reservation... "
+            f"(after {self.refresh_count} refreshes)"
         )
         reservation_locator = (
             By.CSS_SELECTOR,
@@ -135,21 +145,23 @@ class SRTMacroAgent:
         text: str | None = None,
         duration: int = 300,
     ):
-        booking_attempts = self.booking_attempts
-        waitlist_attempts = self.waitlist_attempts
-        total_attempts = self.total_attempts
+        refresh_message = (
+            f"{self.refresh_count}번 새로고침 후 "
+            if self.refresh_count
+            else "첫 조회에서 "
+        )
 
         if success_type == "booking":
             base_message = "Booking successful!"
             default_text = "예약에 성공하였습니다."
             detail_message = (
-                f"총 {total_attempts}번 시도 중 좌석 예약 {booking_attempts}번째 시도에서 성공했습니다."
+                f"{refresh_message}예약 버튼을 통해 좌석을 확보했습니다."
             )
         else:
             base_message = "Reservation successful!"
             default_text = "예약대기에 성공하였습니다."
             detail_message = (
-                f"총 {total_attempts}번 시도 중 예약대기 {waitlist_attempts}번째 시도에서 성공했습니다."
+                f"{refresh_message}예약대기 신청이 완료되었습니다."
             )
 
         print(f"\n{base_message}")
@@ -161,15 +173,16 @@ class SRTMacroAgent:
         message_text = f"{message_text}\n{detail_message}"
         self.bot.alert_sync(text=message_text, duration=duration)
 
-    def _handle_alert(self):
+    def _handle_alert(self) -> str | None:
         try:
             alert = self.driver.switch_to.alert
         except NoAlertPresentException:
-            return
+            return None
 
         print(f"\nAlert appeared: {alert.text}")
         alert.accept()
         print("\nAlert accepted.")
+        return alert.text
 
     def _wait_for_results_table(self):
         results_locator = (
@@ -182,6 +195,28 @@ class SRTMacroAgent:
             )
         except TimeoutException:
             pass
+
+    def _switch_to_booking_window(self, previous_handles: set[str]) -> bool:
+        try:
+            WebDriverWait(self.driver, self.wait_timeout).until(
+                lambda driver: len(driver.window_handles) > len(previous_handles)
+            )
+        except TimeoutException:
+            return False
+
+        new_handles = [
+            handle for handle in self.driver.window_handles if handle not in previous_handles
+        ]
+        if not new_handles:
+            return False
+
+        self.driver.switch_to.window(new_handles[0])
+        return True
+
+    def _is_on_booking_page(self) -> bool:
+        keywords = ["승차권 예약", "예약 정보", "결제", "탑승객"]
+        page_source = self.driver.page_source
+        return any(keyword in page_source for keyword in keywords)
 
     def _click_element(self, locator: tuple[str, str], description: str) -> bool:
         last_error: Exception | None = None
@@ -212,10 +247,4 @@ class SRTMacroAgent:
             print(f"\nFailed to click {description}: {last_error}")
         return False
 
-    def _register_attempt(self, *, is_waitlist: bool) -> int:
-        self.total_attempts += 1
-        if is_waitlist:
-            self.waitlist_attempts += 1
-            return self.waitlist_attempts
-        self.booking_attempts += 1
-        return self.booking_attempts
+    
