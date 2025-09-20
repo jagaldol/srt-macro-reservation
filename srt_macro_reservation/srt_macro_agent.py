@@ -1,4 +1,3 @@
-import asyncio
 import time
 from random import randint
 
@@ -7,6 +6,7 @@ from selenium.common.exceptions import (
     ElementNotInteractableException,
     JavascriptException,
     NoAlertPresentException,
+    NoSuchElementException,
     StaleElementReferenceException,
     TimeoutException,
 )
@@ -124,8 +124,9 @@ class SRTMacroAgent:
                 return (
                     self.driver.find_element(By.CSS_SELECTOR, selector).text.strip()
                 )
-            except StaleElementReferenceException:
-                time.sleep(0.1)
+            except (NoSuchElementException, StaleElementReferenceException):
+                time.sleep(0.2)
+                self._wait_for_results_table()
         return ""
 
     def _notify_success(
@@ -158,7 +159,7 @@ class SRTMacroAgent:
             return
         message_text = text or default_text
         message_text = f"{message_text}\n{detail_message}"
-        asyncio.run(self.bot.alert(text=message_text, duration=duration))
+        self.bot.alert_sync(text=message_text, duration=duration)
 
     def _handle_alert(self):
         try:

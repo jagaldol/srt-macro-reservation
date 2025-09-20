@@ -11,6 +11,7 @@ class SRTMacroBot:
         self.chat_id = chat_id
         self._last_update_id: Optional[int] = None
         self._stop_requested = False
+        self._loop: asyncio.AbstractEventLoop | None = asyncio.new_event_loop()
 
     async def alert(self, text=None, duration=300):
         self._stop_requested = False
@@ -50,6 +51,11 @@ class SRTMacroBot:
                 text="알림이 최대 동작 시간(5분)을 초과하여 중지되었습니다.",
             )
 
+    def alert_sync(self, text=None, duration=300):
+        loop = self._ensure_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(self.alert(text=text, duration=duration))
+
     async def _check_stop_command(self):
         offset = (self._last_update_id + 1) if self._last_update_id is not None else None
         try:
@@ -77,3 +83,8 @@ class SRTMacroBot:
         if str(message.chat_id) != str(self.chat_id):
             return False
         return message.text.strip().lower() == "/stop"
+
+    def _ensure_loop(self) -> asyncio.AbstractEventLoop:
+        if self._loop is None or self._loop.is_closed():
+            self._loop = asyncio.new_event_loop()
+        return self._loop
