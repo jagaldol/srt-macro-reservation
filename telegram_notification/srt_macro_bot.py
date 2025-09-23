@@ -59,9 +59,7 @@ class SRTMacroBot:
     def alert_sync(self, text=None, duration=300):
         loop = self._ensure_loop()
 
-        future = asyncio.run_coroutine_threadsafe(
-            self.alert(text=text, duration=duration), loop
-        )
+        future = asyncio.run_coroutine_threadsafe(self.alert(text=text, duration=duration), loop)
         try:
             return future.result()
         except RuntimeError as error:

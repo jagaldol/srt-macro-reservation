@@ -62,10 +62,7 @@ class SRTMacroAgent:
         if "예약하기" not in seat_status:
             return False
 
-        print(
-            "\nAttempting to book a seat... "
-            f"(after {self.refresh_count} refreshes)"
-        )
+        print("\nAttempting to book a seat... " f"(after {self.refresh_count} refreshes)")
         button_locator = (
             By.CSS_SELECTOR,
             (
@@ -104,10 +101,7 @@ class SRTMacroAgent:
         if "신청하기" not in reservation_status:
             return False
 
-        print(
-            "\nAttempting to place a reservation... "
-            f"(after {self.refresh_count} refreshes)"
-        )
+        print("\nAttempting to place a reservation... " f"(after {self.refresh_count} refreshes)")
         reservation_locator = (
             By.CSS_SELECTOR,
             (
@@ -131,9 +125,7 @@ class SRTMacroAgent:
         )
         for _ in range(2):
             try:
-                return (
-                    self.driver.find_element(By.CSS_SELECTOR, selector).text.strip()
-                )
+                return self.driver.find_element(By.CSS_SELECTOR, selector).text.strip()
             except (NoSuchElementException, StaleElementReferenceException):
                 time.sleep(0.2)
                 self._wait_for_results_table()
@@ -145,24 +137,16 @@ class SRTMacroAgent:
         text: str | None = None,
         duration: int = 300,
     ):
-        refresh_message = (
-            f"{self.refresh_count}번 새로고침 후 "
-            if self.refresh_count
-            else "첫 조회에서 "
-        )
+        refresh_message = f"{self.refresh_count}번 새로고침 후 " if self.refresh_count else "첫 조회에서 "
 
         if success_type == "booking":
             base_message = "Booking successful!"
             default_text = "예약에 성공하였습니다."
-            detail_message = (
-                f"{refresh_message}예약 버튼을 통해 좌석을 확보했습니다."
-            )
+            detail_message = f"{refresh_message}예약 버튼을 통해 좌석을 확보했습니다."
         else:
             base_message = "Reservation successful!"
             default_text = "예약대기에 성공하였습니다."
-            detail_message = (
-                f"{refresh_message}예약대기 신청이 완료되었습니다."
-            )
+            detail_message = f"{refresh_message}예약대기 신청이 완료되었습니다."
 
         print(f"\n{base_message}")
         print(detail_message)
@@ -190,9 +174,7 @@ class SRTMacroAgent:
             "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr",
         )
         try:
-            WebDriverWait(self.driver, self.wait_timeout).until(
-                EC.presence_of_element_located(results_locator)
-            )
+            WebDriverWait(self.driver, self.wait_timeout).until(EC.presence_of_element_located(results_locator))
         except TimeoutException:
             pass
 
@@ -204,9 +186,7 @@ class SRTMacroAgent:
         except TimeoutException:
             return False
 
-        new_handles = [
-            handle for handle in self.driver.window_handles if handle not in previous_handles
-        ]
+        new_handles = [handle for handle in self.driver.window_handles if handle not in previous_handles]
         if not new_handles:
             return False
 
@@ -222,9 +202,7 @@ class SRTMacroAgent:
         last_error: Exception | None = None
         for _ in range(2):
             try:
-                element = WebDriverWait(self.driver, self.wait_timeout).until(
-                    EC.element_to_be_clickable(locator)
-                )
+                element = WebDriverWait(self.driver, self.wait_timeout).until(EC.element_to_be_clickable(locator))
                 element.click()
                 return True
             except (ElementClickInterceptedException, ElementNotInteractableException) as error:
@@ -246,5 +224,3 @@ class SRTMacroAgent:
         if last_error:
             print(f"\nFailed to click {description}: {last_error}")
         return False
-
-    

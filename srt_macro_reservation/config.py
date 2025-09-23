@@ -36,6 +36,7 @@ class SRTConfig(BaseModel):
 
 def load_config_from_env() -> SRTConfig:
     """환경변수에서 설정 값을 읽어와 SRTConfig 생성."""
+
     def _get_env(key: str) -> str | None:
         value = os.getenv(key)
         if value is None:

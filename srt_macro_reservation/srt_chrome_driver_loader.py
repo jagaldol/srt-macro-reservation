@@ -14,9 +14,7 @@ from srt_macro_reservation.config import SRTConfig
 class SRTChromeDriverLoader:
     LOGIN_URL = "https://etk.srail.co.kr/cmc/01/selectLoginForm.do"
     SEARCH_URL = "https://etk.srail.kr/hpg/hra/01/selectScheduleList.do"
-    RESULT_ROWS_SELECTOR = (
-        "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr"
-    )
+    RESULT_ROWS_SELECTOR = "#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr"
 
     def __init__(self, config: SRTConfig, wait_timeout: int = 10):
         self.config = config
@@ -41,9 +39,7 @@ class SRTChromeDriverLoader:
     def _login(self):
         self.driver.get(self.LOGIN_URL)
         try:
-            user_field = self.wait.until(
-                EC.visibility_of_element_located((By.ID, "srchDvNm01"))
-            )
+            user_field = self.wait.until(EC.visibility_of_element_located((By.ID, "srchDvNm01")))
         except TimeoutException as exc:
             raise RuntimeError("로그인 페이지를 불러오지 못했습니다.") from exc
 
@@ -61,18 +57,14 @@ class SRTChromeDriverLoader:
     def _search_trains(self):
         self.driver.get(self.SEARCH_URL)
         try:
-            departure_field = self.wait.until(
-                EC.element_to_be_clickable((By.ID, "dptRsStnCdNm"))
-            )
+            departure_field = self.wait.until(EC.element_to_be_clickable((By.ID, "dptRsStnCdNm")))
         except TimeoutException as exc:
             raise RuntimeError("열차 조회 페이지를 불러오지 못했습니다.") from exc
 
         departure_field.clear()
         departure_field.send_keys(self.config.departure_station)
 
-        arrival_field = self.wait.until(
-            EC.element_to_be_clickable((By.ID, "arvRsStnCdNm"))
-        )
+        arrival_field = self.wait.until(EC.element_to_be_clickable((By.ID, "arvRsStnCdNm")))
         arrival_field.clear()
         arrival_field.send_keys(self.config.arrival_station)
 
@@ -91,15 +83,11 @@ class SRTChromeDriverLoader:
             message += f"\nSkipping first {self.config.num_to_skip} trains."
         print(message)
 
-        search_button = self.wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//input[@value='조회하기']"))
-        )
+        search_button = self.wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@value='조회하기']")))
         search_button.click()
 
         try:
-            self.wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, self.RESULT_ROWS_SELECTOR))
-            )
+            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, self.RESULT_ROWS_SELECTOR)))
         except TimeoutException:
             pass
         time.sleep(0.5)
@@ -129,8 +117,6 @@ class SRTChromeDriverLoader:
                 selector.select_by_visible_text(text)
                 return
             except NoSuchElementException as exc:
-                raise RuntimeError(
-                    f"{element_id}에서 {text} 옵션을 찾을 수 없습니다."
-                ) from exc
+                raise RuntimeError(f"{element_id}에서 {text} 옵션을 찾을 수 없습니다.") from exc
 
         raise ValueError("value 또는 text 중 하나는 반드시 제공되어야 합니다.")
