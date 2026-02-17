@@ -1,80 +1,121 @@
 import os
-from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class SRTConfig(BaseModel):
-    departure_station: str = Field(..., description="SRT 출발역", example="서울")
-    arrival_station: str = Field(..., description="SRT 도착역", example="부산")
-    departure_date: str = Field(..., description="출발 날짜 YYYYMMDD", example="20250101")
-    departure_time: str = Field(..., description="출발 시간(짝수, hh 형식)", example="06")
-    num_to_check: int = Field(3, ge=1, description="검색 결과 중 시도할 시간표 수")
-    num_to_skip: int = Field(0, ge=0, description="검색 결과에서 건너뛸 시간표 수")
-    user_id: str = Field(..., description="사용자 ID", example="1234567890")
-    password: str = Field(..., description="비밀번호", example="0000")
+    start_hotkey: str = Field("f9", description="매크로 시작 단축키")
+    stop_hotkey: str = Field("esc", description="매크로 중지 단축키")
+    image_match_confidence: float = Field(
+        0.88,
+        ge=0.4,
+        le=0.99,
+        description="이미지 인식 confidence",
+    )
     enable_waiting_list: bool = Field(
         True,
         description="예약대기(신청하기) 자동 시도 여부",
-        example=True,
+    )
+    roi_enabled: bool = Field(
+        True,
+        description="저장된 결과 영역(ROI) 사용 여부",
+    )
+    reservation_scan_timeout_sec: float = Field(
+        5.0,
+        ge=0.5,
+        le=15.0,
+        description="조회 직후 예약 탐색 최대 시간(초)",
+    )
+    refresh_settle_delay_sec: float = Field(
+        0.18,
+        ge=0.05,
+        le=2.0,
+        description="조회 클릭 후 결과 렌더링 대기 시간(초)",
+    )
+    enable_telegram_notification: bool = Field(
+        False,
+        description="텔레그램 알림 사용 여부",
+    )
+    telegram_bot_token: str | None = Field(
+        None,
+        description="텔레그램 봇 토큰",
+    )
+    telegram_chat_id: str | None = Field(
+        None,
+        description="텔레그램 채팅 ID",
     )
 
-    @field_validator("departure_date")
-    def validate_date(cls, value):
-        try:
-            datetime.strptime(value, "%Y%m%d")
-        except ValueError:
-            raise ValueError("날짜가 잘못되었습니다. YYYYMMDD 형식으로 입력해주세요.")
-        return value
+    @field_validator("start_hotkey", "stop_hotkey")
+    @classmethod
+    def validate_hotkey(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not normalized:
+            raise ValueError("단축키는 비어 있을 수 없습니다.")
+        return normalized
 
-    @field_validator("departure_time")
-    def validate_time(cls, value):
-        if not value.isnumeric() or int(value) % 2 != 0:
-            raise ValueError("출발 시간은 짝수 시간 (hh 형식)으로 입력해야 합니다.")
-        return value
+    @model_validator(mode="after")
+    def validate_config(self):
+        if self.start_hotkey == self.stop_hotkey:
+            raise ValueError("시작/중지 단축키는 서로 달라야 합니다.")
+        if self.enable_telegram_notification:
+            if not self.telegram_bot_token:
+                raise ValueError("텔레그램 알림을 켠 경우 telegram_bot_token이 필요합니다.")
+            if not self.telegram_chat_id:
+                raise ValueError("텔레그램 알림을 켠 경우 telegram_chat_id가 필요합니다.")
+        return self
+
+
+def _parse_bool_env(key: str, default: bool) -> bool:
+    raw_value = os.getenv(key)
+    if raw_value is None or not raw_value.strip():
+        return default
+
+    lowered = raw_value.strip().lower()
+    if lowered in {"1", "true", "t", "y", "yes"}:
+        return True
+    if lowered in {"0", "false", "f", "n", "no"}:
+        return False
+    raise ValueError(f"{key} 환경변수는 true/false 중 하나여야 합니다.")
+
+
+def _parse_float_env(key: str, default: float) -> float:
+    raw_value = os.getenv(key)
+    if raw_value is None or not raw_value.strip():
+        return default
+    try:
+        return float(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"{key} 환경변수는 숫자여야 합니다.") from exc
+
+
+def _parse_str_env(key: str, default: str) -> str:
+    raw_value = os.getenv(key)
+    if raw_value is None:
+        return default
+    stripped = raw_value.strip()
+    return stripped if stripped else default
+
+
+def _parse_optional_str_env(key: str) -> str | None:
+    raw_value = os.getenv(key)
+    if raw_value is None:
+        return None
+    stripped = raw_value.strip()
+    return stripped if stripped else None
 
 
 def load_config_from_env() -> SRTConfig:
     """환경변수에서 설정 값을 읽어와 SRTConfig 생성."""
 
-    def _get_env(key: str) -> str | None:
-        value = os.getenv(key)
-        if value is None:
-            return None
-        return value.strip()
-
-    def _parse_int_env(key: str, default: int) -> int:
-        raw_value = os.getenv(key)
-        if raw_value is None or not raw_value.strip():
-            return default
-        try:
-            return int(raw_value)
-        except ValueError as exc:
-            raise ValueError(f"{key} 환경변수는 정수여야 합니다.") from exc
-
-    default_num = SRTConfig.model_fields["num_to_check"].default
-    default_skip = SRTConfig.model_fields["num_to_skip"].default
-
-    def _parse_bool_env(key: str, default: bool) -> bool:
-        raw_value = os.getenv(key)
-        if raw_value is None or not raw_value.strip():
-            return default
-
-        lowered = raw_value.strip().lower()
-        if lowered in {"1", "true", "t", "y", "yes"}:
-            return True
-        if lowered in {"0", "false", "f", "n", "no"}:
-            return False
-        raise ValueError(f"{key} 환경변수는 true/false 중 하나여야 합니다.")
-
     return SRTConfig(
-        departure_station=_get_env("DEPARTURE_STATION"),
-        arrival_station=_get_env("ARRIVAL_STATION"),
-        departure_date=_get_env("DEPARTURE_DATE"),
-        departure_time=_get_env("DEPARTURE_TIME"),
-        num_to_check=_parse_int_env("NUM_TO_CHECK", default_num),
-        num_to_skip=_parse_int_env("NUM_TO_SKIP", default_skip),
-        user_id=_get_env("USER_ID"),
-        password=_get_env("PASSWORD"),
+        start_hotkey=_parse_str_env("START_HOTKEY", "f9"),
+        stop_hotkey=_parse_str_env("STOP_HOTKEY", "esc"),
+        image_match_confidence=_parse_float_env("IMAGE_MATCH_CONFIDENCE", 0.88),
         enable_waiting_list=_parse_bool_env("ENABLE_WAITING_LIST", True),
+        roi_enabled=_parse_bool_env("ROI_ENABLED", True),
+        reservation_scan_timeout_sec=_parse_float_env("RESERVATION_SCAN_TIMEOUT_SEC", 5.0),
+        refresh_settle_delay_sec=_parse_float_env("REFRESH_SETTLE_DELAY_SEC", 0.18),
+        enable_telegram_notification=_parse_bool_env("ENABLE_TELEGRAM_NOTIFICATION", False),
+        telegram_bot_token=_parse_optional_str_env("TELEGRAM_BOT_TOKEN"),
+        telegram_chat_id=_parse_optional_str_env("TELEGRAM_CHAT_ID"),
     )
