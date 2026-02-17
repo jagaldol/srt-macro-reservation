@@ -4,9 +4,7 @@ import os
 import dotenv
 
 from srt_macro_reservation.config import load_config_from_env
-from srt_macro_reservation.srt_chrome_driver_loader import SRTChromeDriverLoader
 from srt_macro_reservation.srt_macro_agent import SRTMacroAgent
-from telegram_notification.srt_macro_bot import SRTMacroBot
 
 
 def _parse_bool_arg(value: str) -> bool:
@@ -19,19 +17,34 @@ def _parse_bool_arg(value: str) -> bool:
 
 
 def parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="SRT 매크로 실행 설정")
-    parser.add_argument("--departure-station", help="SRT 출발역")
-    parser.add_argument("--arrival-station", help="SRT 도착역")
-    parser.add_argument("--departure-date", help="출발 날짜 (YYYYMMDD)")
-    parser.add_argument("--departure-time", help="출발 시간 (짝수, hh 형식)")
-    parser.add_argument("--num-to-check", type=int, help="검색 결과 중 시도할 시간표 수")
-    parser.add_argument("--num-to-skip", type=int, help="검색 결과에서 건너뛸 시간표 수")
-    parser.add_argument("--user-id", help="SRT 사용자 ID")
-    parser.add_argument("--password", help="SRT 비밀번호")
+    parser = argparse.ArgumentParser(description="SRT 이미지 매크로 실행 설정")
+    parser.add_argument("--start-hotkey", help="매크로 시작 단축키 (예: f9)")
+    parser.add_argument("--stop-hotkey", help="매크로 중지 단축키 (예: esc)")
+    parser.add_argument("--image-match-confidence", type=float, help="이미지 인식 confidence (0.4~0.99)")
     parser.add_argument(
         "--enable-waiting-list",
         type=_parse_bool_arg,
         help="예약대기(신청하기) 자동 시도 여부 (true/false)",
+    )
+    parser.add_argument(
+        "--roi-enabled",
+        type=_parse_bool_arg,
+        help="저장된 결과 영역(ROI) 사용 여부 (true/false)",
+    )
+    parser.add_argument(
+        "--reservation-scan-timeout-sec",
+        type=float,
+        help="조회 직후 예약 탐색 최대 시간(초)",
+    )
+    parser.add_argument(
+        "--refresh-settle-delay-sec",
+        type=float,
+        help="조회 버튼 클릭 후 결과 렌더링 대기 시간(초)",
+    )
+    parser.add_argument(
+        "--enable-telegram-notification",
+        type=_parse_bool_arg,
+        help="텔레그램 알림 사용 여부 (true/false)",
     )
     parser.add_argument("--telegram-bot-token", help="텔레그램 봇 토큰")
     parser.add_argument("--telegram-chat-id", help="텔레그램 채팅 ID")
@@ -40,15 +53,14 @@ def parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def apply_cli_overrides(args: argparse.Namespace) -> None:
     arg_to_env = {
-        "departure_station": "DEPARTURE_STATION",
-        "arrival_station": "ARRIVAL_STATION",
-        "departure_date": "DEPARTURE_DATE",
-        "departure_time": "DEPARTURE_TIME",
-        "num_to_check": "NUM_TO_CHECK",
-        "num_to_skip": "NUM_TO_SKIP",
-        "user_id": "USER_ID",
-        "password": "PASSWORD",
+        "start_hotkey": "START_HOTKEY",
+        "stop_hotkey": "STOP_HOTKEY",
+        "image_match_confidence": "IMAGE_MATCH_CONFIDENCE",
         "enable_waiting_list": "ENABLE_WAITING_LIST",
+        "roi_enabled": "ROI_ENABLED",
+        "reservation_scan_timeout_sec": "RESERVATION_SCAN_TIMEOUT_SEC",
+        "refresh_settle_delay_sec": "REFRESH_SETTLE_DELAY_SEC",
+        "enable_telegram_notification": "ENABLE_TELEGRAM_NOTIFICATION",
         "telegram_bot_token": "TELEGRAM_BOT_TOKEN",
         "telegram_chat_id": "TELEGRAM_CHAT_ID",
     }
@@ -69,26 +81,5 @@ if __name__ == "__main__":
     apply_cli_overrides(cli_args)
 
     srt_config = load_config_from_env()
-    loader = SRTChromeDriverLoader(srt_config)
-    driver = loader.get_search_page_driver()
-
-    bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    srt_macro_bot = None
-    if bot_token and chat_id:
-        srt_macro_bot = SRTMacroBot(bot_token, chat_id)
-        config_summary = (
-            "SRT 매크로를 다음 설정으로 시작합니다:\n"
-            f"- 출발역: {srt_config.departure_station}\n"
-            f"- 도착역: {srt_config.arrival_station}\n"
-            f"- 출발일시: {srt_config.departure_date} {srt_config.departure_time}시\n"
-            f"- 조회 건너뛰기: {srt_config.num_to_skip}건\n"
-            f"- 확인 대상: {srt_config.num_to_check}건\n"
-            f"- 예약대기 시도: {'예' if srt_config.enable_waiting_list else '아니요'}"
-        )
-        srt_macro_bot.alert_sync(text=config_summary, duration=0)
-    else:
-        print("Telegram 알림을 비활성화했습니다. 토큰과 채팅 ID를 확인하세요.")
-
-    macro_agent = SRTMacroAgent(srt_config, driver, bot=srt_macro_bot)
+    macro_agent = SRTMacroAgent(srt_config)
     macro_agent.run()

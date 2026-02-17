@@ -175,6 +175,16 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
+# macOS
+.DS_Store
+
+# Local runtime artifacts
+runtime/
+
+# Local templates (user-specific)
+targets/*
+!targets/.gitkeep
+
 run*.sh
 !run.sh
 
