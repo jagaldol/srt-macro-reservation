@@ -94,7 +94,7 @@ class ReservationNotifier:
         if self._telegram_failure_reported:
             return
         self._telegram_failure_reported = True
-        print(f"\n텔레그램 알림 설정에 실패했습니다. ({reason}) 로컬 비프음으로 대체합니다.")
+        print(f"\n텔레그램 알림 설정에 실패했습니다. ({reason}) PC 알림음으로 대체합니다.")
 
     @staticmethod
     def _normalize_optional_str(value: str | None) -> str | None:
