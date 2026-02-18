@@ -187,6 +187,8 @@ targets/*
 
 run*.sh
 !run.sh
+!run_telegram.sh
 
 run*.bat
 !run.bat
+!run_telegram.bat

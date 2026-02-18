@@ -356,7 +356,7 @@ class SRTMacroAgent:
         if self.config.enable_telegram_notification:
             print("- 알림 방식: 텔레그램")
         else:
-            print("- 알림 방식: 로컬 비프음")
+            print("- 알림 방식: PC 알림음")
 
         if self._templates.booking:
             print(f"- 예약하기 템플릿: {self._templates.booking.name}")
