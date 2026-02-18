@@ -15,4 +15,6 @@ python main.py \
   --roi-enabled true \
   --reservation-scan-timeout-sec 5 \
   --refresh-settle-delay-sec 0.18 \
-  --enable-telegram-notification false
+  --enable-telegram-notification true \
+  --telegram-bot-token "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+  --telegram-chat-id "1234567890"

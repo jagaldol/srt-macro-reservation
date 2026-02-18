@@ -57,11 +57,6 @@ class SRTConfig(BaseModel):
     def validate_config(self):
         if self.start_hotkey == self.stop_hotkey:
             raise ValueError("시작/중지 단축키는 서로 달라야 합니다.")
-        if self.enable_telegram_notification:
-            if not self.telegram_bot_token:
-                raise ValueError("텔레그램 알림을 켠 경우 telegram_bot_token이 필요합니다.")
-            if not self.telegram_chat_id:
-                raise ValueError("텔레그램 알림을 켠 경우 telegram_chat_id가 필요합니다.")
         return self
 
 

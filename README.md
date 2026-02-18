@@ -27,6 +27,7 @@ SRT 웹페이지에서 사용자가 직접 조회 화면까지 준비한 뒤,
 - 알림 방식 선택
   - 텔레그램 알림
   - 로컬 비프음
+- 텔레그램 설정값이 비어있거나 유효하지 않으면 자동으로 비프음 알림으로 fallback
 
 ## 🧭 동작 흐름
 
@@ -90,8 +91,8 @@ cp .env.example .env
 | `TELEGRAM_BOT_TOKEN`           | 텔레그램 봇 토큰                  | placeholder |
 | `TELEGRAM_CHAT_ID`             | 텔레그램 채팅 ID                  | placeholder |
 
-- `ENABLE_TELEGRAM_NOTIFICATION=true` 이면 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`를 반드시 입력해야 합니다.
-- `ENABLE_TELEGRAM_NOTIFICATION=false` 이면 두 값은 비워두거나 placeholder를 유지해도 됩니다.
+- `ENABLE_TELEGRAM_NOTIFICATION=true`일 때 토큰/chat_id가 비어있거나 예시값이면 텔레그램 전송은 건너뛰고 로컬 비프음으로 자동 fallback 됩니다.
+- 텔레그램 알림을 실제로 받으려면 토큰/chat_id를 실제 값으로 입력하세요.
 
 ## ▶️ 실행
 
@@ -120,6 +121,21 @@ Windows:
 ```bat
 run.bat
 ```
+
+텔레그램 실행(예시 인자 포함):
+
+```bash
+./run_telegram.sh
+```
+
+```bat
+run_telegram.bat
+```
+
+참고:
+
+- `run_telegram.*` 스크립트는 `.env.example`의 예시 텔레그램 값을 인자로 사용합니다.
+- 예시값 그대로 실행하면 텔레그램 전송 대신 로컬 비프음 fallback이 동작합니다.
 
 ## 🛠 보조 스크립트
 
@@ -173,11 +189,12 @@ TELEGRAM_BOT_TOKEN=1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ
 TELEGRAM_CHAT_ID=1234567890
 ```
 
-5. `./run.sh` 실행 후 예약/예약대기 클릭 시 알림 수신 확인
+5. `./run.sh`(또는 `run.bat`) 실행 후 예약/예약대기 클릭 시 알림 수신 확인
 
 참고:
 
 - `ENABLE_TELEGRAM_NOTIFICATION=false`이면 텔레그램 대신 로컬 비프음으로 알림합니다.
+- `ENABLE_TELEGRAM_NOTIFICATION=true`라도 텔레그램 값이 비어있거나 유효하지 않으면 로컬 비프음으로 자동 fallback 됩니다.
 
 ## 🧩 트러블슈팅
 
