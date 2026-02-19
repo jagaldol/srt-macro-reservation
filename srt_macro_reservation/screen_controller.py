@@ -6,6 +6,7 @@ from pathlib import Path
 import pyautogui
 import pyscreeze
 from pynput import keyboard
+from PIL import Image, UnidentifiedImageError
 
 from srt_macro_reservation.models import Region
 
@@ -17,6 +18,7 @@ class ScreenController:
         self._base_confidence = base_confidence
         self._coord_scale_x, self._coord_scale_y = self._detect_coordinate_scale()
         self._keyboard_controller = self._create_keyboard_controller()
+        self._template_cache: dict[Path, Image.Image] = {}
 
     def locate_and_click(
         self,
@@ -56,11 +58,14 @@ class ScreenController:
     ):
         search_region = self._to_search_region(region)
         effective_confidence = confidence if confidence is not None else self._base_confidence
+        template_image = self._load_template_image(image_path)
+        if template_image is None:
+            return None
 
         for attempt in range(retries):
             try:
                 location = pyautogui.locateOnScreen(
-                    str(image_path),
+                    template_image,
                     region=search_region,
                     confidence=effective_confidence,
                     grayscale=True,
@@ -76,6 +81,30 @@ class ScreenController:
             if attempt + 1 < retries:
                 time.sleep(0.12)
         return None
+
+    def _load_template_image(self, image_path: Path) -> Image.Image | None:
+        cached_image = self._template_cache.get(image_path)
+        if cached_image is not None:
+            return cached_image
+
+        try:
+            with Image.open(image_path) as image:
+                loaded_image = image.convert("RGB")
+        except FileNotFoundError:
+            print(f"\n이미지 파일을 찾을 수 없습니다: {image_path}")
+            return None
+        except PermissionError:
+            print(f"\n이미지 파일 권한이 없습니다: {image_path}")
+            return None
+        except UnidentifiedImageError:
+            print(f"\n이미지 파일 형식을 인식할 수 없습니다: {image_path}")
+            return None
+        except OSError as error:
+            print(f"\n이미지 파일 로드 중 OS 오류가 발생했습니다: {error}")
+            return None
+
+        self._template_cache[image_path] = loaded_image
+        return loaded_image
 
     def scroll_to_top(self):
         for _ in range(3):
