@@ -20,7 +20,7 @@ class RefreshOutcome(Enum):
 
 @dataclass(frozen=True)
 class TemplateSet:
-    booking: Path | None
+    booking: tuple[Path, ...]
     waiting: Path | None
     refresh: Path | None
     sold_out: Path | None

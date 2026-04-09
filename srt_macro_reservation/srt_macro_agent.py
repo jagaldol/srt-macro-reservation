@@ -222,14 +222,18 @@ class SRTMacroAgent:
     def _attempt_booking(self) -> bool:
         if not self._templates.booking:
             return False
-        return self._screen.locate_and_click(
-            image_path=self._templates.booking,
-            description="예약하기",
-            region=self._result_region,
-            retries=1,
-            confidence=self._confidence_for("예약하기"),
-            move_duration=0.01,
-        )
+
+        for booking_template in self._templates.booking:
+            if self._screen.locate_and_click(
+                image_path=booking_template,
+                description="예약하기",
+                region=self._result_region,
+                retries=1,
+                confidence=self._confidence_for("예약하기"),
+                move_duration=0.01,
+            ):
+                return True
+        return False
 
     def _attempt_waiting_list(self) -> bool:
         if not self.config.enable_waiting_list:
@@ -276,7 +280,7 @@ class SRTMacroAgent:
         if template_type == "조회하기":
             return base
         if template_type == "예약하기":
-            return max(base, 0.92)
+            return max(base, 0.95)
         if template_type == "예약대기":
             return max(base, 0.90)
         if template_type in {"매진", "접속대기"}:
@@ -359,7 +363,8 @@ class SRTMacroAgent:
             print("- 알림 방식: PC 알림음")
 
         if self._templates.booking:
-            print(f"- 예약하기 템플릿: {self._templates.booking.name}")
+            template_names = ", ".join(template.name for template in self._templates.booking)
+            print(f"- 예약하기 템플릿: {len(self._templates.booking)}개 ({template_names})")
         else:
             print("- 예약하기 템플릿: 없음")
 

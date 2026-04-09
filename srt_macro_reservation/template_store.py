@@ -10,7 +10,7 @@ class TemplateStore:
 
     def load(self) -> TemplateSet:
         return TemplateSet(
-            booking=self._resolve(("예약하기",)),
+            booking=self._resolve_booking_candidates("예약하기"),
             waiting=self._resolve(("예약대기", "신청하기")),
             refresh=self._resolve(("조회하기",)),
             sold_out=self._resolve(("매진",)),
@@ -27,6 +27,29 @@ class TemplateStore:
             if image_stem in normalized_targets:
                 return image_path
         return None
+
+    def _resolve_booking_candidates(self, name: str) -> tuple[Path, ...]:
+        if not self._target_dir.exists():
+            return ()
+
+        normalized_name = self._normalize_text(name)
+        prefixed_name = f"{normalized_name}_"
+        exact_matches: list[Path] = []
+        prefixed_matches: list[Path] = []
+
+        image_paths = sorted(
+            self._target_dir.glob("*.png"),
+            key=lambda path: self._normalize_text(path.name),
+        )
+        for image_path in image_paths:
+            image_stem = self._normalize_text(image_path.stem)
+            if image_stem == normalized_name:
+                exact_matches.append(image_path)
+                continue
+            if image_stem.startswith(prefixed_name):
+                prefixed_matches.append(image_path)
+
+        return tuple(exact_matches + prefixed_matches)
 
     @staticmethod
     def _normalize_text(value: str) -> str:
