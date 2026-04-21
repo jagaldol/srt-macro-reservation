@@ -1,4 +1,4 @@
-pydantic==2.13.0
+pydantic==2.13.3
 python-dotenv==1.2.2
 pyautogui==0.9.54
 opencv-python==4.13.0.92
