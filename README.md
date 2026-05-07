@@ -162,7 +162,7 @@ run_telegram.bat
 - 같은 조회 페이지에서도 내가 원하는 열차 조건이 노출되는 구간만 정밀하게 타겟팅할 수 있습니다.
 
 ```bash
-python calculate_result_region.py
+./calculate_region.sh
 ```
 
 실행 후 안내에 따라:
