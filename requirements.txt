@@ -1,5 +1,5 @@
 pydantic==2.13.4
 python-dotenv==1.2.2
 pyautogui==0.9.54
-opencv-python==4.13.0.92
+opencv-python==5.0.0.93
 pynput==1.8.2
